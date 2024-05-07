@@ -130,4 +130,87 @@ public:
     }
 };
 
-//
+// 双向BFS
+class Solution {
+public:
+    vector<vector<int>> graph;
+    unordered_map<string, int> word2Id;
+    int wordsTotal = 0;
+
+    int addWord(string word)
+    {
+        if (!word2Id.count(word))
+        {
+            word2Id[word] = wordsTotal++;
+            graph.emplace_back();
+            return wordsTotal - 1;
+        }
+        return word2Id[word];
+    }
+
+    void addEdge(string word)
+    {
+        int wordId = addWord(word);
+        for(auto &ch: word)
+        {
+            char tmp = ch;
+            ch = '*';
+            int gramId = addWord(word);
+            graph[wordId].emplace_back(gramId);
+            graph[gramId].emplace_back(wordId);
+            ch = tmp;
+        }
+    }
+
+    int ladderLength(string beginWord, string endWord, vector<string>& wordList) {
+        for (auto word: wordList)
+            addEdge(word);
+        addEdge(beginWord);
+        vector<int> costBefore(wordsTotal, INT_MAX);
+        vector<int> costAfter(wordsTotal, INT_MAX);
+        if (!word2Id.count(endWord))
+            return 0;
+        int beginId = word2Id[beginWord], endId = word2Id[endWord];
+        queue<int> qBegin, qEnd;
+        qBegin.push(beginId);
+        qEnd.push(endId);
+        costBefore[beginId] = 0;
+        costAfter[endId] = 0;
+        while(!qBegin.empty() || !qEnd.empty())
+        {
+            int n = qBegin.size();
+            for (int i = 0; i < n; i++)
+            {
+                int curWord = qBegin.front();
+                qBegin.pop();
+                for (int nextWord: graph[curWord])
+                {
+                    if (costAfter[nextWord] != INT_MAX)
+                        return (costBefore[curWord] + 1 + costAfter[nextWord]) / 2 + 1;
+                    if(costBefore[nextWord] == INT_MAX)
+                    {
+                        qBegin.push(nextWord);
+                        costBefore[nextWord] = costBefore[curWord] + 1;
+                    }
+                }
+            }
+            n = qEnd.size();
+            for (int i = 0; i < n; i++)
+            {
+                int curWord = qEnd.front();
+                qEnd.pop();
+                for (int prevWord: graph[curWord])
+                {
+                    if (costBefore[prevWord] != INT_MAX)
+                        return (costAfter[curWord] + 1 + costBefore[prevWord]) / 2 + 1;
+                    if(costAfter[prevWord] == INT_MAX)
+                    {
+                        qEnd.push(prevWord);
+                        costAfter[prevWord] = costAfter[curWord] + 1;
+                    }
+                }
+            }
+        }
+        return 0;
+    }
+};

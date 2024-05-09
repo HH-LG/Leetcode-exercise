@@ -5,12 +5,14 @@ class Trie
 {
 private:
     vector<Trie*> children;
-    bool isEnd;
 public:
+    bool isEnd;
+    int childrenTotal;
     string str;
     Trie()
     {
         children = vector<Trie*>(26, nullptr);
+        childrenTotal = 0;
         isEnd = false;
         str = "";
     }
@@ -23,11 +25,19 @@ public:
             if (!cur->children[idx])
             {
                 cur->children[idx] = new Trie();
+                cur->childrenTotal++;
             }
             cur = cur->children[idx];
         }
         cur->isEnd = true;
         cur->str = word;
+    }
+
+    void delChild(int childIdx)
+    {
+        delete this->children[childIdx];
+        this->children[childIdx] = nullptr;
+        this->childrenTotal--;
     }
 
     Trie* step(char ch)
@@ -55,7 +65,7 @@ public:
 
 class Solution {
 public:
-    set<string> wordsFound;
+    vector<string> wordsFound;
     int wordsTotal;
     void dfs(Trie *trie, int x, int y, vector<vector<char>>& board,  vector<vector<int>> visit)
     {
@@ -64,7 +74,10 @@ public:
         if (!trie)
             return;
         if (trie->isEos())
-            wordsFound.insert(trie->str);
+        {
+            wordsFound.push_back(trie->str);
+            trie->isEnd = false;
+        }
         int dx[] = {-1, 1, 0, 0};
         int dy[] = {0, 0, -1, 1};
 
@@ -78,6 +91,8 @@ public:
             {
                 Trie *next = trie->step(board[locx][locy]);
                 dfs(next, locx, locy, board, visit);
+                if (next && next->childrenTotal == 0)
+                    trie->delChild(board[locx][locy] - 'a');
             }
         }
     }
@@ -99,23 +114,11 @@ public:
                 Trie* next = trie->step(board[i][j]);
                 if (next)
                 {
-                    qNode.push(next);
-                    qPos.push({i, j});
+                    vector<vector<int>> visit(row, vector<int>(col, 0));
+                    dfs(next, i, j, board, visit);
                 }
             }
         }
-
-        while(!qNode.empty())
-        {
-            int x = qPos.front()[0];
-            int y = qPos.front()[1];
-            Trie *cur = qNode.front();
-            vector<vector<int>> visit(row, vector<int>(col, 0));
-            qPos.pop();
-            qNode.pop();
-            dfs(cur, x, y, board, visit);
-        }
-        vector<string> res(wordsFound.begin(), wordsFound.end());
-        return res;
+        return wordsFound;
     }
 };
